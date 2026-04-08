@@ -62,7 +62,7 @@ export async function generateVideoSummary(
   const text = transcript.map((c) => c.text).join(" ");
   const client = getClient();
   const response = await client.models.generateContent({
-    model: "gemini-2.0-flash",
+    model: "gemma-3-27b-it",
     contents: VIDEO_SUMMARY_PROMPT + text,
   });
   return response.text ?? "";
@@ -77,7 +77,7 @@ export async function generateThesis(videos: Video[]): Promise<string> {
     .join("\n\n---\n\n");
   const client = getClient();
   const response = await client.models.generateContent({
-    model: "gemini-2.0-flash",
+    model: "gemma-3-27b-it",
     contents: THESIS_PROMPT + combined,
   });
   return response.text ?? "";
