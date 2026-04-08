@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Link, useLoaderData } from "react-router";
+import { Link, useLoaderData, useNavigation } from "react-router";
+import { marked } from "marked";
 import { getVideo } from "../lib/store";
+import { generateVideoSummary } from "../lib/ai";
 import { TranscriptView } from "../components/transcript-view";
+import { Skeleton } from "../components/skeleton";
 import type { Route } from "./+types/video";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -15,14 +18,21 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (!result) {
     throw new Response("Video not found", { status: 404 });
   }
-  return result;
+  const summary = await generateVideoSummary(result.video.transcript).catch(
+    () => "Failed to generate summary. Please try again."
+  );
+  return { ...result, summary };
 }
 
 const tabs = ["Summary", "Mind Map", "Explainer"] as const;
 type Tab = (typeof tabs)[number];
 
-function AiStudioPanel() {
+function AiStudioPanel({ summary }: { summary: string }) {
   const [activeTab, setActiveTab] = useState<Tab>("Summary");
+  const navigation = useNavigation();
+  const isGenerating =
+    navigation.state === "loading" &&
+    navigation.location?.pathname !== undefined;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -71,20 +81,14 @@ function AiStudioPanel() {
             <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.75rem" }}>
               Summary
             </h3>
-            <p style={{ color: "#666", marginBottom: "0.75rem" }}>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-              ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-              aliquip ex ea commodo consequat. Duis aute irure dolor in
-              reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-              pariatur.
-            </p>
-            <p style={{ color: "#666" }}>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
-              officia deserunt mollit anim id est laborum. Sed ut perspiciatis
-              unde omnis iste natus error sit voluptatem accusantium doloremque
-              laudantium, totam rem aperiam.
-            </p>
+            {isGenerating ? (
+              <Skeleton rows={8} />
+            ) : (
+              <div
+                style={{ color: "#444", fontSize: "0.875rem", lineHeight: 1.7 }}
+                dangerouslySetInnerHTML={{ __html: marked(summary) as string }}
+              />
+            )}
           </div>
         )}
 
@@ -191,7 +195,7 @@ function AiStudioPanel() {
 }
 
 export default function VideoPage() {
-  const { project, video } = useLoaderData<typeof loader>();
+  const { project, video, summary } = useLoaderData<typeof loader>();
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "2rem 1rem" }}>
@@ -278,7 +282,7 @@ export default function VideoPage() {
           >
             AI Studio
           </h2>
-          <AiStudioPanel />
+          <AiStudioPanel summary={summary} />
         </div>
       </div>
     </div>
