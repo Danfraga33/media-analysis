@@ -23,6 +23,84 @@ export async function loader({ params }: Route.LoaderArgs) {
 const tabs = ["Summary", "Mind Map", "Explainer"] as const;
 type Tab = (typeof tabs)[number];
 
+function VideoEmbed({ videoId, title }: { videoId: string; title: string }) {
+  const [playing, setPlaying] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <div style={{ marginBottom: "1rem" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+        <span style={{ fontSize: "0.75rem", color: "#999", fontWeight: 500 }}>Video</span>
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          style={{
+            fontSize: "0.75rem",
+            color: "#999",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "2px 6px",
+            borderRadius: 3,
+            fontFamily: "Helvetica, Arial, sans-serif",
+          }}
+        >
+          {collapsed ? "Show" : "Hide"}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", borderRadius: 6, overflow: "hidden", background: "#000" }}>
+          {playing ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+              title={title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+            />
+          ) : (
+            <button
+              onClick={() => setPlaying(true)}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", background: "none", cursor: "pointer", padding: 0 }}
+              aria-label="Play video"
+            >
+              <img
+                src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+                alt={title}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+              {/* Play button overlay */}
+              <div style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0,0,0,0.25)",
+              }}>
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.95)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <polygon points="6,3 18,10 6,17" fill="#111" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AiStudioPanel({
   projectId,
   videoId,
@@ -269,16 +347,7 @@ export default function VideoPage() {
       >
         {/* Left panel — Transcript */}
         <div>
-          <img
-            src={`https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`}
-            alt={video.title}
-            style={{
-              width: "100%",
-              borderRadius: 4,
-              marginBottom: "1rem",
-              display: "block",
-            }}
-          />
+          <VideoEmbed videoId={video.videoId} title={video.title} />
           <h2
             style={{
               fontSize: "0.8125rem",
