@@ -36,7 +36,7 @@ function AiStudioPanel({
 
   useEffect(() => {
     void fetcher.load(
-      `/api/video-summary?projectId=${projectId}&videoId=${videoId}`
+      `/api/video-summary?projectId=${projectId}&videoId=${videoId}`,
     );
   }, [projectId, videoId]);
 
@@ -92,7 +92,13 @@ function AiStudioPanel({
       >
         {activeTab === "Summary" && (
           <div>
-            <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+            <h3
+              style={{
+                fontSize: "0.9375rem",
+                fontWeight: 600,
+                marginBottom: "0.75rem",
+              }}
+            >
               Summary
             </h3>
             {isGenerating || summary === null ? (
@@ -109,7 +115,13 @@ function AiStudioPanel({
 
         {activeTab === "Mind Map" && (
           <div>
-            <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+            <h3
+              style={{
+                fontSize: "0.9375rem",
+                fontWeight: 600,
+                marginBottom: "0.75rem",
+              }}
+            >
               Mind Map
             </h3>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -144,8 +156,12 @@ function AiStudioPanel({
                         marginTop: "0.25rem",
                       }}
                     >
-                      <li style={{ color: "#666" }}>&mdash; Supporting Evidence</li>
-                      <li style={{ color: "#666" }}>&mdash; Counter Argument</li>
+                      <li style={{ color: "#666" }}>
+                        &mdash; Supporting Evidence
+                      </li>
+                      <li style={{ color: "#666" }}>
+                        &mdash; Counter Argument
+                      </li>
                     </ul>
                   </li>
                 </ul>
@@ -180,7 +196,13 @@ function AiStudioPanel({
 
         {activeTab === "Explainer" && (
           <div>
-            <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+            <h3
+              style={{
+                fontSize: "0.9375rem",
+                fontWeight: 600,
+                marginBottom: "0.75rem",
+              }}
+            >
               Explainer
             </h3>
             <ul style={{ paddingLeft: "1.25rem", margin: 0 }}>
@@ -240,13 +262,23 @@ export default function VideoPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "2rem",
+          gridTemplateColumns: "1fr 1px 1fr",
+          gap: "0 2rem",
           alignItems: "start",
         }}
       >
         {/* Left panel — Transcript */}
         <div>
+          <img
+            src={`https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`}
+            alt={video.title}
+            style={{
+              width: "100%",
+              borderRadius: 4,
+              marginBottom: "1rem",
+              display: "block",
+            }}
+          />
           <h2
             style={{
               fontSize: "0.8125rem",
@@ -262,11 +294,12 @@ export default function VideoPage() {
           <TranscriptView chunks={video.transcript} />
         </div>
 
+        {/* Divider */}
+        <div style={{ alignSelf: "stretch", background: "linear-gradient(to bottom, transparent, #d1d5db 8%, #d1d5db 92%, transparent)", width: 1 }} />
+
         {/* Right panel — AI Studio */}
         <div
           style={{
-            border: "1px solid #e5e5e5",
-            borderRadius: 4,
             padding: "1rem",
             position: "sticky",
             top: "2rem",
