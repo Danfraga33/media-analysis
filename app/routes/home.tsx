@@ -1,114 +1,37 @@
 import { useState } from "react";
-import { useFetcher } from "react-router";
-import { YoutubeTranscript } from "youtube-transcript";
+import { Form, Link, redirect, useLoaderData } from "react-router";
+import { getAllProjects, createProject } from "../lib/store";
 import type { Route } from "./+types/home";
-
-interface TranscriptChunk {
-  text: string;
-  offset: number;
-  duration: number;
-}
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "YouTube Transcript Viewer" },
-    {
-      name: "description",
-      content: "Fetch and view YouTube video transcripts",
-    },
+    { title: "Media Analysis — Projects" },
+    { name: "description", content: "YouTube transcript analysis projects" },
   ];
+}
+
+export async function loader() {
+  return { projects: getAllProjects() };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
-  const url = formData.get("url") as string;
+  const name = (formData.get("name") as string)?.trim();
 
-  if (!url) {
-    return { error: "Please enter a YouTube URL", transcript: null };
+  if (!name) {
+    return { error: "Please enter a project name" };
   }
 
-  const videoId = extractVideoId(url);
-  if (!videoId) {
-    return { error: "Could not extract video ID from URL", transcript: null };
-  }
-
-  try {
-    const transcript = await YoutubeTranscript.fetchTranscript(videoId);
-    return { error: null, transcript, videoId };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to fetch transcript";
-    return { error: message, transcript: null };
-  }
-}
-
-function extractVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-
-  // Maybe they just pasted a video ID directly
-  if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) {
-    return url.trim();
-  }
-
-  return null;
-}
-
-interface TranscriptGroup {
-  startMs: number;
-  chunks: TranscriptChunk[];
-}
-
-function groupTranscript(chunks: TranscriptChunk[], intervalMs = 30000): TranscriptGroup[] {
-  const groups: TranscriptGroup[] = [];
-
-  for (const chunk of chunks) {
-    const groupStart = Math.floor(chunk.offset / intervalMs) * intervalMs;
-    const lastGroup = groups[groups.length - 1];
-
-    if (lastGroup && lastGroup.startMs === groupStart) {
-      lastGroup.chunks.push(chunk);
-    } else {
-      groups.push({ startMs: groupStart, chunks: [chunk] });
-    }
-  }
-
-  return groups;
-}
-
-function formatTimestamp(offsetMs: number): string {
-  const totalSeconds = Math.floor(offsetMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function formatRange(startMs: number, intervalMs = 30000): string {
-  return `${formatTimestamp(startMs)} – ${formatTimestamp(startMs + intervalMs)}`;
+  const project = createProject(name);
+  return redirect(`/projects/${project.id}`);
 }
 
 export default function Home() {
-  const fetcher = useFetcher<typeof action>();
-  const [url, setUrl] = useState("");
-
-  const isLoading = fetcher.state !== "idle";
-  const data = fetcher.data;
+  const { projects } = useLoaderData<typeof loader>();
+  const [name, setName] = useState("");
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "2rem 1rem" }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "2rem 1rem" }}>
       <h1
         style={{
           fontSize: "1.5rem",
@@ -116,16 +39,23 @@ export default function Home() {
           marginBottom: "1.5rem",
         }}
       >
-        YouTube Transcript Viewer
+        Projects
       </h1>
 
-      <fetcher.Form method="post" style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+      <Form
+        method="post"
+        style={{
+          display: "flex",
+          gap: "0.5rem",
+          marginBottom: "2rem",
+        }}
+      >
         <input
           type="text"
-          name="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste a YouTube URL..."
+          name="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="New project name..."
           style={{
             flex: 1,
             padding: "0.5rem 0.75rem",
@@ -137,7 +67,6 @@ export default function Home() {
         />
         <button
           type="submit"
-          disabled={isLoading}
           style={{
             padding: "0.5rem 1.25rem",
             backgroundColor: "#111",
@@ -145,60 +74,79 @@ export default function Home() {
             border: "none",
             borderRadius: 4,
             fontSize: "1rem",
-            cursor: isLoading ? "wait" : "pointer",
+            cursor: "pointer",
             fontFamily: "Helvetica, Arial, sans-serif",
           }}
         >
-          {isLoading ? "Fetching..." : "Get Transcript"}
+          Create Project
         </button>
-      </fetcher.Form>
+      </Form>
 
-      {data?.error && (
-        <p style={{ color: "#dc2626", marginBottom: "1rem" }}>{data.error}</p>
-      )}
-
-      {data?.transcript && (
-        <div>
-          <p style={{ fontSize: "0.875rem", color: "#666", marginBottom: "1rem" }}>
-            {data.transcript.length} chunks &middot; Video ID: {data.videoId}
-          </p>
-          <div
-            style={{
-              maxHeight: "70vh",
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-            }}
-          >
-            {groupTranscript(data.transcript as TranscriptChunk[]).map((group, gi) => (
-              <div
-                key={gi}
-                style={{
-                  border: "1px solid #e5e5e5",
-                  borderRadius: 4,
-                  padding: "0.75rem 1rem",
-                }}
-              >
+      {projects.length === 0 ? (
+        <p style={{ color: "#999", fontSize: "0.875rem" }}>
+          No projects yet. Create one above to get started.
+        </p>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gap: "1rem",
+          }}
+        >
+          {projects.map((project) => (
+            <Link
+              key={project.id}
+              to={`/projects/${project.id}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <div style={{ position: "relative", paddingTop: 12 }}>
+                {/* Folder tab */}
                 <div
                   style={{
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    color: "#666",
-                    marginBottom: "0.5rem",
-                    fontVariantNumeric: "tabular-nums",
+                    position: "absolute",
+                    top: 0,
+                    left: 12,
+                    width: 60,
+                    height: 12,
+                    backgroundColor: "#f5f0e8",
+                    borderRadius: "4px 4px 0 0",
+                    border: "1px solid #d4cfc7",
+                    borderBottom: "none",
+                  }}
+                />
+                {/* Folder body */}
+                <div
+                  style={{
+                    backgroundColor: "#f5f0e8",
+                    border: "1px solid #d4cfc7",
+                    borderRadius: "0 4px 4px 4px",
+                    padding: "1rem",
+                    minHeight: 100,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
                   }}
                 >
-                  {formatRange(group.startMs)}
-                </div>
-                <div style={{ fontSize: "0.875rem", lineHeight: 1.6 }}>
-                  {group.chunks.map((chunk, ci) => (
-                    <span key={ci}>{chunk.text} </span>
-                  ))}
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    {project.name}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#888" }}>
+                    {project.videos.length}{" "}
+                    {project.videos.length === 1 ? "video" : "videos"}
+                    <br />
+                    {new Date(project.createdAt).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </Link>
+          ))}
         </div>
       )}
     </div>
