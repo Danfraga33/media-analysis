@@ -5,3 +5,9 @@
 # React Router
 /.react-router/
 /build/
+
+# Serena
+/.serena/
+
+# Claude
+.claude/
