@@ -10,7 +10,7 @@ export function TranscriptView({ chunks }: { chunks: TranscriptChunk[] }) {
   return (
     <div
       style={{
-        maxHeight: "70vh",
+        maxHeight: "80vh",
         overflowY: "auto",
         display: "flex",
         flexDirection: "column",
