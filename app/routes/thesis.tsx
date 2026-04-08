@@ -1,7 +1,7 @@
-import { Link, useLoaderData, useNavigation } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useFetcher, useLoaderData } from "react-router";
 import { marked } from "marked";
 import { getProject } from "../lib/store";
-import { generateThesis } from "../lib/ai";
 import { Skeleton } from "../components/skeleton";
 import type { Route } from "./+types/thesis";
 
@@ -15,19 +15,25 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (!project) {
     throw new Response("Project not found", { status: 404 });
   }
-  const thesis = await generateThesis(project.videos).catch(
-    () => "Failed to generate thesis. Please try again."
-  );
-  return { project, thesis };
+  return { project };
 }
 
-
 export default function ThesisPage() {
-  const { project, thesis } = useLoaderData<typeof loader>();
-  const navigation = useNavigation();
-  const isGenerating =
-    navigation.state === "loading" &&
-    navigation.location?.pathname !== undefined;
+  const { project } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher();
+  const [thesis, setThesis] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetcher.load(`/api/thesis?projectId=${project.id}`);
+  }, [project.id]);
+
+  useEffect(() => {
+    if (fetcher.data && (fetcher.data as any).thesis) {
+      setThesis((fetcher.data as any).thesis);
+    }
+  }, [fetcher.data]);
+
+  const isGenerating = fetcher.state === "loading" && thesis === null;
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "2rem 1rem" }}>
@@ -71,10 +77,11 @@ export default function ThesisPage() {
         in this project
       </p>
 
-      {isGenerating ? (
-        <Skeleton rows={8} />
+      {isGenerating || thesis === null ? (
+        <Skeleton rows={12} />
       ) : (
         <div
+          className="md-body"
           style={{ fontSize: "0.875rem", lineHeight: 1.7, color: "#444" }}
           dangerouslySetInnerHTML={{ __html: marked(thesis) as string }}
         />

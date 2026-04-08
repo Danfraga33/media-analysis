@@ -6,4 +6,5 @@ export default [
   route("projects/:projectId/videos/:videoId", "routes/video.tsx"),
   route("projects/:projectId/thesis", "routes/thesis.tsx"),
   route("api/video-summary", "routes/api.video-summary.ts"),
+  route("api/thesis", "routes/api.thesis.ts"),
 ] satisfies RouteConfig;
