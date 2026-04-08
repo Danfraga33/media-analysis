@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { Link, useLoaderData, useNavigation } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useFetcher, useLoaderData } from "react-router";
 import { marked } from "marked";
 import { getVideo } from "../lib/store";
-import { generateVideoSummary } from "../lib/ai";
 import { TranscriptView } from "../components/transcript-view";
 import { Skeleton } from "../components/skeleton";
 import type { Route } from "./+types/video";
@@ -18,21 +17,36 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (!result) {
     throw new Response("Video not found", { status: 404 });
   }
-  const summary = await generateVideoSummary(result.video.transcript).catch(
-    () => "Failed to generate summary. Please try again."
-  );
-  return { ...result, summary };
+  return result;
 }
 
 const tabs = ["Summary", "Mind Map", "Explainer"] as const;
 type Tab = (typeof tabs)[number];
 
-function AiStudioPanel({ summary }: { summary: string }) {
+function AiStudioPanel({
+  projectId,
+  videoId,
+}: {
+  projectId: string;
+  videoId: string;
+}) {
   const [activeTab, setActiveTab] = useState<Tab>("Summary");
-  const navigation = useNavigation();
-  const isGenerating =
-    navigation.state === "loading" &&
-    navigation.location?.pathname !== undefined;
+  const fetcher = useFetcher();
+  const [summary, setSummary] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetcher.load(
+      `/api/video-summary?projectId=${projectId}&videoId=${videoId}`
+    );
+  }, [projectId, videoId]);
+
+  useEffect(() => {
+    if (fetcher.data && (fetcher.data as any).summary) {
+      setSummary((fetcher.data as any).summary);
+    }
+  }, [fetcher.data]);
+
+  const isGenerating = fetcher.state === "loading" && summary === null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -81,10 +95,11 @@ function AiStudioPanel({ summary }: { summary: string }) {
             <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.75rem" }}>
               Summary
             </h3>
-            {isGenerating ? (
+            {isGenerating || summary === null ? (
               <Skeleton rows={8} />
             ) : (
               <div
+                className="md-body"
                 style={{ color: "#444", fontSize: "0.875rem", lineHeight: 1.7 }}
                 dangerouslySetInnerHTML={{ __html: marked(summary) as string }}
               />
@@ -195,10 +210,10 @@ function AiStudioPanel({ summary }: { summary: string }) {
 }
 
 export default function VideoPage() {
-  const { project, video, summary } = useLoaderData<typeof loader>();
+  const { project, video } = useLoaderData<typeof loader>();
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "2rem 1rem" }}>
+    <div style={{ width: "100%", padding: "2rem" }}>
       <Link
         to={`/projects/${project.id}`}
         style={{
@@ -216,20 +231,11 @@ export default function VideoPage() {
         style={{
           fontSize: "1.5rem",
           fontWeight: 600,
-          marginBottom: "0.25rem",
+          marginBottom: "1.5rem",
         }}
       >
         {video.title}
       </h1>
-      <p
-        style={{
-          fontSize: "0.875rem",
-          color: "#666",
-          marginBottom: "1.5rem",
-        }}
-      >
-        {video.videoId} &middot; {video.transcript.length} chunks
-      </p>
 
       <div
         style={{
@@ -282,7 +288,7 @@ export default function VideoPage() {
           >
             AI Studio
           </h2>
-          <AiStudioPanel summary={summary} />
+          <AiStudioPanel projectId={project.id} videoId={video.id} />
         </div>
       </div>
     </div>
