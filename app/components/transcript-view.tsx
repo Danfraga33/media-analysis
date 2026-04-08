@@ -10,11 +10,12 @@ export function TranscriptView({ chunks }: { chunks: TranscriptChunk[] }) {
   return (
     <div
       style={{
-        maxHeight: "80vh",
+        maxHeight: "85vh",
         overflowY: "auto",
         display: "flex",
         flexDirection: "column",
         gap: "1rem",
+        paddingRight: "0.5rem",
       }}
     >
       {groups.map((group, gi) => (
