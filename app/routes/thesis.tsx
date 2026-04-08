@@ -30,7 +30,7 @@ export default function ThesisPage() {
     navigation.location?.pathname !== undefined;
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "2rem 1rem" }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "2rem 1rem" }}>
       <Link
         to={`/projects/${project.id}`}
         style={{

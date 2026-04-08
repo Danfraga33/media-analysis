@@ -67,7 +67,7 @@ export default function ProjectPage() {
   const data = fetcher.data;
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "2rem 1rem" }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "2rem 1rem" }}>
       <Link
         to="/"
         style={{
